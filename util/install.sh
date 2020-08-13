@@ -11,8 +11,8 @@ mkdir -p $DYND_APP
 mkdir -p $DYND_CONF
 
 # place files 
-echo "Installing conf and binary..."
-cp ../pkg/conf/config.yml $DYND_CONF/.
+echo "Installing binary..."
+#cp ../conf/config.yml $DYND_CONF/.
 cp ../cmd/dynamited $DYND_APP/.
 chmod +x $DYND_APP/dynamited
 

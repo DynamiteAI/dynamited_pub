@@ -62,10 +62,8 @@ func main() {
 
 	fmt.Printf("loading roles: %v\n", strings.Join(conf.Conf.Roles, ", "))
 
-	// If watcher is enabled, run watcher tasks for the configured roles 
-	if conf.Conf.Watcher.Enabled {
-		watcher.Init(ctx)		
-	}
+	// Always run watcher routines for configured roles
+	watcher.Init(ctx) 
 	
 	fmt.Printf("dynamited is running. log directory: %v\n", logging.LogDir)
 
