@@ -1,0 +1,7 @@
+roles: ["agent"]
+log_level: "debug"
+log_dir: "/var/log/dynamite/dynamited"
+watcher:
+  interval: 60 sec
+  mode: thread
+  enabled: true
