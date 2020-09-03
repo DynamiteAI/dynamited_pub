@@ -2,24 +2,24 @@
 package main
 
 import (
-	// Built-ins 
-	"os"
-	"os/signal"
+	// Built-ins
+	"context"
 	"flag"
 	"fmt"
-	"context"
+	"os"
+	"os/signal"
 	"strings"
 	"syscall"
 
 	// Dynamite packages
 	"dynamite_daemon_core/pkg/common"
 	"dynamite_daemon_core/pkg/conf"
-	"dynamite_daemon_core/pkg/watcher"
 	"dynamite_daemon_core/pkg/logging"
+	"dynamite_daemon_core/pkg/watcher"
 )
 
 var (
-	confFile string 
+	confFile string
 )
 
 func main() {
@@ -30,7 +30,7 @@ func main() {
 	// Attach a channel to receive interrupts
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, os.Kill)
-	
+
 	// Deferred func to ensure we stop receiving signals and cancel the context before exit
 	defer func() {
 		signal.Stop(c)
@@ -41,7 +41,7 @@ func main() {
 	go func() {
 		select {
 		case msg := <-c:
-			common.Quit <-[]byte(msg.String())
+			common.Quit <- []byte(msg.String())
 		}
 	}()
 
@@ -52,20 +52,23 @@ func main() {
 	// Load the provided conf file into the global conf.Conf struct variable
 	conf.Load(confFile)
 
-	// Initialize the configured logging directory 
-	if ! logging.Init() {
+	// Initialize the configured logging directory
+	if !logging.Init() {
 		fmt.Println("Unable to write logs. Exiting.")
 		signal.Stop(c)
 		cancel()
 		os.Exit(1)
 	}
+	// Initialize the dynamited application log
+	logging.SetupAppLogger()
 
-	fmt.Printf("loading roles: %v\n", strings.Join(conf.Conf.Roles, ", "))
+	logging.LogEntry.WithField("roles", strings.Join(conf.Conf.Roles, ", ")).Info("loading_roles")
 
 	// Always run watcher routines for configured roles
-	watcher.Init(ctx) 
-	
+	watcher.Init(ctx)
+
 	fmt.Printf("dynamited is running. log directory: %v\n", logging.LogDir)
+	logging.LogEntry.Info("dynamited_running.")
 
 	// Main loop
 	for {
@@ -75,7 +78,12 @@ func main() {
 			fmt.Println(string(msg))
 			fmt.Println("shutting down")
 			cancel()
-		case <- ctx.Done():
+			// Close the dynamited log file
+			if file, ok := logging.Log.Out.(*os.File); ok {
+				file.Sync()
+				file.Close()
+			}
+		case <-ctx.Done():
 			os.Exit(0)
 		}
 	}
